@@ -1,0 +1,43 @@
+pipeline {
+    agent any
+    
+    environment {
+        DOCKER_IMAGE = 'your-web-image'
+    }
+    
+    stages {
+        stage('Build') {
+            steps {
+                script {
+                    // Build dell'immagine Docker per il servizio web
+                    docker.build(env.DOCKER_IMAGE, "-f Dockerfile .")
+                }
+            }
+        }
+        
+        stage('Test') {
+            steps {
+                script {
+                    // Esegui i test dell'applicazione
+                    docker.image(env.DOCKER_IMAGE).inside {
+                        sh 'pytest tests/'
+                    }
+                }
+            }
+        }
+        
+        stage('Deploy') {
+            steps {
+                script {
+                    // Push dell'immagine Docker nel registro delle immagini
+                    docker.withRegistry('https://your-docker-registry', 'docker-credentials') {
+                        docker.image(env.DOCKER_IMAGE).push('latest')
+                    }
+                    
+                    // Aggiornamento del servizio nel Docker Compose
+                    sh 'docker-compose up -d'
+                }
+            }
+        }
+    }
+}

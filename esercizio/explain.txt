@@ -1,0 +1,39 @@
+FROM --platform=$BUILDPLATFORM python:3.10-alpine AS builder:
+
+Questa istruzione indica l'immagine di base da cui iniziare la costruzione del container. La particolarità qui è l'uso della variabile $BUILDPLATFORM per 
+specificare la piattaforma dell'immagine di base. Questo è utile quando si costruisce e si esegue il container su piattaforme diverse. 
+Ad esempio , potrebbe essere linux/amd64, linux/arm64, ecc.
+L'opzione AS builder assegna un alias all'immagine corrente. Questo alias può essere utilizzato successivamente nel Dockerfile per riferirsi a questa immagine.
+WORKDIR /code:
+
+Imposta la directory di lavoro all'interno del container in cui verranno eseguite le istruzioni successive.
+COPY requirements.txt /code:
+
+Copia il file requirements.txt dalla directory locale nell'immagine Docker, nella directory di lavoro /code.
+RUN --mount=type=cache,target=/root/.cache/pip \ pip3 install -r requirements.txt:
+
+Questa istruzione esegue il comando pip3 install -r requirements.txt all'interno dell'immagine. 
+L'opzione --mount=type=cache,target=/root/.cache/pip indica che si desidera montare la directory del cache di pip come volume all'interno del container. 
+Questo può essere utile per velocizzare le successive esecuzioni del comando pip install, in quanto il cache verrà conservato tra le build successive.
+
+COPY . /code:
+Copia tutto il contenuto della directory locale nell'immagine Docker, nella directory di lavoro /code.
+ENTRYPOINT ["python3"]:
+
+Specifica il comando predefinito che verrà eseguito quando il container viene avviato. In questo caso, viene eseguito l'interprete Python 3.
+CMD ["app.py"]:
+
+Fornisce gli argomenti predefiniti che verranno passati all'entrypoint quando il container viene avviato. In questo caso, verrà eseguito il file app.py.
+FROM builder as dev-envs:
+
+Questa istruzione inizia una nuova fase della costruzione del container utilizzando l'immagine builder come base. 
+L'alias builder è stato assegnato nella prima istruzione FROM.
+RUN <<EOF ... EOF:
+
+Questa sintassi viene utilizzata per eseguire più comandi all'interno del container. È equivalente a utilizzare RUN separatamente per ciascun comando. 
+Gli operatori <<EOF ... EOF sono noti come here document o heredoc in bash e consentono di specificare più linee di testo senza dover utilizzare escape characters o 
+stringhe multiriga.
+COPY --from=gloursdocker/docker / /:
+
+Questa istruzione copia i file dall'immagine Docker denominata gloursdocker/docker nell'immagine corrente. È una forma di multi-stage build in cui si utilizza 
+un'altra immagine come sorgente di file o programmi per l'immagine finale.
